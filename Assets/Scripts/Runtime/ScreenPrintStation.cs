@@ -145,13 +145,10 @@ public sealed class ScreenPrintStation : Interactable
 
     private void UpdateSqueegeeAngle()
     {
-        float keyboardTilt = Input.GetAxisRaw("Mouse X") * 0.7f;
-        if (Input.GetKey(KeyCode.Q))
-            keyboardTilt -= 30f * Time.deltaTime;
-        if (Input.GetKey(KeyCode.E))
-            keyboardTilt += 30f * Time.deltaTime;
-        float scroll = Input.mouseScrollDelta.y * 2.5f;
-        squeegeeAngle = Mathf.Clamp(squeegeeAngle + scroll + keyboardTilt, 25f, 65f);
+        // This is a physical forward/back setup: push the mouse forward to move
+        // the handle away, pull it backward to lean the handle toward the player.
+        float forwardBack = Input.GetAxisRaw("Mouse Y");
+        squeegeeAngle = Mathf.Clamp(squeegeeAngle - forwardBack * 0.32f, 25f, 65f);
         // The handle leans toward the player (negative local Z) while the rubber
         // contact edge remains planted on the mesh.
         squeegee.localRotation = Quaternion.Euler(-squeegeeAngle, 0f, 0f);
@@ -162,7 +159,7 @@ public sealed class ScreenPrintStation : Interactable
         MoveCameraTo(focusPose);
         activePlayer.PlayerCamera.fieldOfView = 54f;
         pullProgress = 0f;
-        angleScoreTotal = Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 20f);
+        angleScoreTotal = Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 8f);
         pullSamples = 1f;
         phase = PrintPhase.Printing;
     }
@@ -324,7 +321,7 @@ public sealed class ScreenPrintStation : Interactable
         {
             GUI.Label(new Rect(x + 18, y + 10, width - 36, 27), "2 · SET SQUEEGEE TO 45°");
             GUI.Label(new Rect(x + 18, y + 39, width - 36, 42), "Tilt the WOODEN HAND TOOL only\nScreen and metal holder stay fixed");
-            GUI.Label(new Rect(x + 18, y + 80, width - 36, 20), "Mouse sideways · Q/E · scroll");
+            GUI.Label(new Rect(x + 18, y + 80, width - 36, 20), "Mouse forward / backward only");
             DrawAngleGauge(new Rect(x + 22, y + 132, width - 44, 34));
             GUI.Label(new Rect(x + 18, y + 188, width - 36, 20), "CLICK TO LOCK THE ANGLE");
         }
@@ -353,15 +350,15 @@ public sealed class ScreenPrintStation : Interactable
         float targetX = Mathf.Lerp(rect.x, rect.xMax, (45f - 25f) / 40f);
         Color previous = GUI.color;
         GUI.color = new Color(0.2f, 0.85f, 0.38f, 0.75f);
-        GUI.DrawTexture(new Rect(targetX - 28f, rect.y + 3f, 56f, rect.height - 6f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(targetX - 8f, rect.y + 3f, 16f, rect.height - 6f), Texture2D.whiteTexture);
 
         float markerX = Mathf.Lerp(rect.x, rect.xMax, (squeegeeAngle - 25f) / 40f);
-        bool perfect = Mathf.Abs(squeegeeAngle - 45f) <= 2f;
+        bool perfect = Mathf.Abs(squeegeeAngle - 45f) <= 1f;
         GUI.color = perfect ? Color.white : new Color(1f, 0.38f, 0.2f);
         GUI.DrawTexture(new Rect(markerX - 3f, rect.y - 4f, 6f, rect.height + 8f), Texture2D.whiteTexture);
         GUI.color = previous;
 
-        string status = perfect ? "PERFECT — 45°" : squeegeeAngle < 43f ? "TILT FORWARD" : "TILT BACK";
+        string status = perfect ? "PERFECT — 45°" : squeegeeAngle < 44f ? "PULL BACK" : "PUSH FORWARD";
         GUI.Label(new Rect(rect.x, rect.y - 29f, rect.width, 25f),
             $"{squeegeeAngle:0}°  ·  {status}",
             new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold });
