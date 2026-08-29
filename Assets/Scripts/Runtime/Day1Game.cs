@@ -30,6 +30,9 @@ public sealed class Day1Game : MonoBehaviour
     private float notificationUntil;
     private float finalQuality;
     private int wastedShirts;
+    private string outcomeBanner = string.Empty;
+    private bool outcomeSucceeded;
+    private float outcomeUntil;
 
     public DayStage Stage { get; private set; } = DayStage.ReadOrder;
     public bool InputCaptured { get; private set; }
@@ -79,7 +82,7 @@ public sealed class Day1Game : MonoBehaviour
         if (Stage != DayStage.PrepareScreen)
             return;
         HasPreparedScreen = true;
-        Advance(DayStage.LoadPress, "Load the shirt onto the printing press", "Screen prepared. Try not to taste the ink.");
+        Advance(DayStage.LoadPress, "Take the shirt and prepared screen to the press", "Prepared screen + cream ink added to inventory.");
     }
 
     public void BeginPrinting()
@@ -99,12 +102,14 @@ public sealed class Day1Game : MonoBehaviour
 
         if (quality >= 70f)
         {
-            Advance(DayStage.CollectFinishedShirt, "Lift the screen and pick up the printed shirt", $"Print accepted at {quality:0}% quality. Pick it up from the press.");
+            ShowOutcome($"SHIRT COMPLETE  ·  {quality:0}% QUALITY", true);
+            Advance(DayStage.CollectFinishedShirt, "Pick up the printed shirt from the raised screen", $"Print accepted at {quality:0}% quality. Pick it up from the press.");
             return;
         }
 
         wastedShirts++;
         cash -= wastedShirtCost;
+        ShowOutcome($"PRINT RUINED  ·  {quality:0}%  ·  -${wastedShirtCost:0}", false);
         Advance(DayStage.CollectShirt, "Collect a replacement shirt", $"Print rejected ({quality:0}%). Wasted shirt: -${wastedShirtCost:0}.");
     }
 
@@ -155,10 +160,7 @@ public sealed class Day1Game : MonoBehaviour
         GUI.Label(new Rect(34, 59, 300, 24), $"Cash  ${cash:0}     Time  {FormatTime(elapsedTime)}", bodyStyle);
         GUI.Label(new Rect(34, 85, 300, 36), Objective, bodyStyle);
 
-        GUI.Box(new Rect(width - 258, 18, 240, 132), GUIContent.none);
-        GUI.Label(new Rect(width - 242, 29, 208, 28), "INVENTORY", headerStyle);
-        string inventory = BuildInventoryText();
-        GUI.Label(new Rect(width - 242, 61, 208, 78), inventory, bodyStyle);
+        DrawHotbar(width, height);
 
         if (!InputCaptured)
         {
@@ -169,6 +171,9 @@ public sealed class Day1Game : MonoBehaviour
 
         if (Time.time < notificationUntil || (Stage == DayStage.ReadOrder && Time.time < 7f))
             GUI.Box(new Rect(width * 0.5f - 260, 24, 520, 44), notification);
+
+        if (Time.time < outcomeUntil)
+            DrawOutcomeBanner(width);
 
         if (Stage == DayStage.Complete)
         {
@@ -195,15 +200,53 @@ public sealed class Day1Game : MonoBehaviour
         return $"{total / 60:00}:{total % 60:00}";
     }
 
-    private string BuildInventoryText()
+    private void ShowOutcome(string message, bool success)
     {
-        string contents = string.Empty;
-        if (HasBlankShirt)
-            contents += "• Blank navy shirt\n";
-        if (HasPreparedScreen)
-            contents += "• Prepared screen + ink\n";
-        if (HasFinishedShirt)
-            contents += "• Finished printed shirt\n";
-        return string.IsNullOrEmpty(contents) ? "(empty)" : contents.TrimEnd();
+        outcomeBanner = message;
+        outcomeSucceeded = success;
+        outcomeUntil = Time.time + 5f;
+    }
+
+    private void DrawHotbar(float width, float height)
+    {
+        const float slot = 74f;
+        const float gap = 6f;
+        const int count = 5;
+        float total = count * slot + (count - 1) * gap;
+        float startX = width * 0.5f - total * 0.5f;
+        float y = height - slot - 14f;
+
+        string[] labels =
+        {
+            HasBlankShirt ? "NAVY\nSHIRT" : string.Empty,
+            HasPreparedScreen ? "SCREEN\n+ INK" : string.Empty,
+            HasFinishedShirt ? "PRINTED\nSHIRT" : string.Empty,
+            string.Empty,
+            string.Empty
+        };
+
+        for (int i = 0; i < count; i++)
+        {
+            Rect rect = new Rect(startX + i * (slot + gap), y, slot, slot);
+            Color previous = GUI.color;
+            GUI.color = string.IsNullOrEmpty(labels[i]) ? new Color(0.72f, 0.72f, 0.72f, 0.8f) : Color.white;
+            GUI.Box(rect, GUIContent.none);
+            GUI.color = previous;
+            GUI.Label(new Rect(rect.x, rect.y + 6f, rect.width, rect.height - 12f),
+                string.IsNullOrEmpty(labels[i]) ? (i + 1).ToString() : $"{i + 1}\n{labels[i]}",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 12, fontStyle = FontStyle.Bold });
+        }
+    }
+
+    private void DrawOutcomeBanner(float width)
+    {
+        Rect rect = new Rect(width * 0.5f - 310f, 90f, 620f, 68f);
+        Color previous = GUI.color;
+        GUI.color = outcomeSucceeded ? new Color(0.25f, 0.95f, 0.42f) : new Color(1f, 0.24f, 0.18f);
+        GUI.Box(rect, GUIContent.none);
+        GUI.color = Color.black;
+        GUI.Label(rect, outcomeBanner,
+            new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 21, fontStyle = FontStyle.Bold });
+        GUI.color = previous;
     }
 }

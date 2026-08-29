@@ -132,22 +132,10 @@ public static class SimulatorProjectSetup
         Material blue = GetMaterial("ScreenBlue", new Color(0.05f, 0.28f, 0.5f), 0.25f, 0.3f);
 
         CreateTable(Vector3.zero, setup.transform, wood, steel);
-        CreateCylinder("Cream Ink Bowl", new Vector3(-0.58f, 1.19f, 0), new Vector3(0.36f, 0.16f, 0.36f), steel, setup.transform);
-        CreateCylinder("Cream Ink Surface", new Vector3(-0.58f, 1.37f, 0), new Vector3(0.31f, 0.025f, 0.31f), ink, setup.transform);
-        CreateBox("Screen Frame", new Vector3(0.46f, 1.17f, 0), new Vector3(1.55f, 0.09f, 1.0f), blue, setup.transform);
-        CreateBox("Screen Interior", new Vector3(0.46f, 1.225f, 0), new Vector3(1.25f, 0.025f, 0.72f), steel, setup.transform);
-
-        GameObject mixingTool = CreateCylinder("Mixing Stick", new Vector3(-0.58f, 1.55f, 0), new Vector3(0.045f, 0.28f, 0.045f), wood, setup.transform);
-        GameObject coatingTool = CreateBox("Coating Tool", new Vector3(-0.15f, 1.33f, 0), new Vector3(0.18f, 0.10f, 0.82f), steel, setup.transform);
-        GameObject coatingFill = CreateBox("Prepared Emulsion", new Vector3(-0.155f, 1.255f, 0), new Vector3(0.02f, 0.018f, 0.65f), blue, setup.transform);
-
-        var focusPose = new GameObject("Preparation Camera Pose").transform;
-        focusPose.SetParent(setup.transform, false);
-        focusPose.localPosition = new Vector3(0, 2.55f, -2.35f);
-        focusPose.localRotation = Quaternion.Euler(48f, 0, 0);
-
-        setup.AddComponent<ScreenPreparationStation>().Configure(
-            focusPose, mixingTool.transform, coatingTool.transform, coatingFill.transform);
+        CreateCylinder("Cream Ink Container", new Vector3(-0.58f, 1.24f, 0), new Vector3(0.32f, 0.24f, 0.32f), ink, setup.transform);
+        CreateBox("Ready Screen Frame", new Vector3(0.42f, 1.24f, 0), new Vector3(1.45f, 0.10f, 0.92f), blue, setup.transform);
+        CreateBox("Ready Stencil Mesh", new Vector3(0.42f, 1.305f, 0), new Vector3(1.18f, 0.025f, 0.68f), steel, setup.transform);
+        setup.AddComponent<WorkflowStation>().Configure(WorkflowStation.StationType.ScreenSetup);
         CreateSign("SCREEN + INK", new Vector3(0, 2.15f, 0), Quaternion.identity, setup.transform);
     }
 
@@ -208,8 +196,8 @@ public static class SimulatorProjectSetup
         CreateSphere("Right Hand", new Vector3(0.42f, 0.34f, 0), new Vector3(0.22f, 0.18f, 0.24f), skin, toolRig.transform);
         var focusPose = new GameObject("Press Camera Pose").transform;
         focusPose.SetParent(press.transform);
-        focusPose.localPosition = new Vector3(0, 2.48f, -2.42f);
-        focusPose.localRotation = Quaternion.Euler(49f, 0, 0);
+        focusPose.localPosition = new Vector3(2.45f, 2.75f, -3.15f);
+        focusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.18f, -0.95f)));
 
         var station = press.AddComponent<ScreenPrintStation>();
         station.Configure(frame.transform, toolRig.transform, focusPose, inkPass.transform,
@@ -348,6 +336,8 @@ public static class SimulatorProjectSetup
         material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
         material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
         material.SetFloat("_ZWrite", 0f);
+        material.SetColor("_BaseColor", color);
+        material.SetFloat("_AlphaClip", 0f);
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         material.renderQueue = (int)RenderQueue.Transparent;
         EditorUtility.SetDirty(material);

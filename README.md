@@ -28,17 +28,17 @@ The player starts their own t-shirt screen-printing business in a garage. It is 
 
 ### First skill: screen printing
 
-The first skill is one-colour screen printing on t-shirts for customer orders. The initial workstation is a manual screen-printing carousel/press, based on the reference provided in this project discussion.
+The first skill is one-colour screen printing on t-shirts for customer orders. The initial workstation is a manual screen-printing carousel/press, based on the reference provided in this project discussion. The interaction follows the basic [screen-printing process](https://en.wikipedia.org/wiki/Screen_printing): a stencil blocks parts of a mesh, ink sits above the screen, and a squeegee forces ink through the open mesh onto the shirt. The current slice supplies a ready screen but keeps screen alignment, the visible ink pass, and the squeegee pull as the hands-on skill.
 
-The core skill challenge is correctly preparing and aligning each order on a shirt:
+The core skill challenge is correctly aligning and printing each order on a shirt:
 
 1. Receive the order and its print requirements.
-2. Fetch a shirt from storage and prepare the screen and ink at the setup area.
+2. Fetch a shirt from storage, then collect an already-prepared screen and ink at the setup area. Screen creation and emulsion preparation are deferred for now.
 3. Place and centre the shirt/design on the press.
 4. Physically position the screen-printing tool and pull the colour toward the player at a precise 45° angle.
 5. Print the shirt, assess the result, and complete the customer order.
 
-Alignment, centring, the 45° print angle, and order quality are the core skill challenge. A bad print wastes a shirt and costs the player money. The simulator should make the machine and workflow feel credible without turning routine work into tedious busywork. Screen printing background: [Wikipedia — Screen printing](https://en.wikipedia.org/wiki/Screen_printing).
+Alignment, centring, the 45° print angle, and order quality are the core skill challenge. A bad print wastes a shirt and costs the player money. The simulator should make the machine and workflow feel credible without turning routine work into tedious busywork.
 
 ### Garage workshop layout
 
@@ -63,7 +63,7 @@ Day 1 is a compact tutorial that proves the movement, interaction, printing, qua
 1. Spawn inside the garage with **$1,000** visible in the HUD.
 2. Read the single customer order: one shirt, one colour, and a specified design placement.
 3. Walk to storage and collect the correct blank shirt.
-4. Prepare the screen and ink at the setup area.
+4. Collect the ready screen and ink with one interaction; detailed screen preparation is outside the current slice.
 5. Load and physically centre the shirt on the press.
 6. Lower the screen and perform the print by pulling the squeegee toward the player while maintaining the target 45° angle.
 7. Inspect the finished print for position, centring, and print quality.

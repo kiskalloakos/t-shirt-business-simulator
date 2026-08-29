@@ -5,8 +5,10 @@ public sealed class ScreenPrintStation : Interactable
     private enum PrintPhase
     {
         Idle,
+        LoweringScreen,
         Aligning,
-        Printing
+        Printing,
+        LiftingScreen
     }
 
     [SerializeField] private Transform screenFrame;
@@ -29,6 +31,8 @@ public sealed class ScreenPrintStation : Interactable
     private float pullProgress;
     private float angleScoreTotal;
     private float pullSamples;
+    private float screenMotion;
+    private float pendingQuality;
 
     public void Configure(Transform frame, Transform tool, Transform cameraPose, Transform inkSpread,
         Renderer mesh, GameObject shirt, Renderer design)
@@ -53,7 +57,7 @@ public sealed class ScreenPrintStation : Interactable
         {
             Day1Game.DayStage.LoadPress => "[E] Load shirt and work at the press",
             Day1Game.DayStage.AlignAndPrint => "Printing in progress",
-            Day1Game.DayStage.CollectFinishedShirt => "[E] Lift screen and pick up finished shirt",
+            Day1Game.DayStage.CollectFinishedShirt => "[E] Pick up finished shirt",
             _ => "Manual screen-printing press"
         };
     }
@@ -74,8 +78,10 @@ public sealed class ScreenPrintStation : Interactable
         game.BeginPrinting();
         SetShirtVisible(true);
         EnterFocus();
-        phase = PrintPhase.Aligning;
         ResetAlignment();
+        SetScreenLift(1f);
+        screenMotion = 0f;
+        phase = PrintPhase.LoweringScreen;
     }
 
     private void Update()
@@ -83,10 +89,21 @@ public sealed class ScreenPrintStation : Interactable
         if (phase == PrintPhase.Idle || activePlayer == null)
             return;
 
-        if (phase == PrintPhase.Aligning)
-            UpdateAlignment();
-        else
-            UpdatePrinting();
+        switch (phase)
+        {
+            case PrintPhase.LoweringScreen:
+                UpdateScreenMotion(lowering: true);
+                break;
+            case PrintPhase.Aligning:
+                UpdateAlignment();
+                break;
+            case PrintPhase.Printing:
+                UpdatePrinting();
+                break;
+            case PrintPhase.LiftingScreen:
+                UpdateScreenMotion(lowering: false);
+                break;
+        }
     }
 
     private void UpdateAlignment()
@@ -99,8 +116,7 @@ public sealed class ScreenPrintStation : Interactable
             alignmentRotation -= 35f * Time.deltaTime;
         alignmentRotation = Mathf.Clamp(alignmentRotation, -15f, 15f);
 
-        screenFrame.localPosition = alignedFramePosition + new Vector3(alignmentX, 0f, alignmentZ);
-        screenFrame.localRotation = Quaternion.Euler(0f, alignmentRotation, 0f);
+        SetScreenLift(0f);
 
         if (Input.GetMouseButtonDown(0))
         {
@@ -112,8 +128,13 @@ public sealed class ScreenPrintStation : Interactable
 
     private void UpdatePrinting()
     {
-        float scroll = Input.mouseScrollDelta.y;
-        squeegeeAngle = Mathf.Clamp(squeegeeAngle + scroll * 2.5f, 25f, 65f);
+        float keyboardTilt = 0f;
+        if (Input.GetKey(KeyCode.Q))
+            keyboardTilt -= 30f * Time.deltaTime;
+        if (Input.GetKey(KeyCode.E))
+            keyboardTilt += 30f * Time.deltaTime;
+        float scroll = Input.mouseScrollDelta.y * 2.5f;
+        squeegeeAngle = Mathf.Clamp(squeegeeAngle + scroll + keyboardTilt, 25f, 65f);
         squeegee.localRotation = Quaternion.Euler(squeegeeAngle, 0f, 0f);
 
         if (!Input.GetMouseButton(0))
@@ -148,17 +169,9 @@ public sealed class ScreenPrintStation : Interactable
             printedDesign.transform.localRotation = Quaternion.Euler(0f, alignmentRotation, 0f);
         }
 
-        ExitFocus();
-        phase = PrintPhase.Idle;
-        Day1Game.Instance.ResolvePrint(quality);
-
-        if (quality < 70f)
-            SetShirtVisible(false);
-        else
-        {
-            screenFrame.localPosition = alignedFramePosition + new Vector3(alignmentX, 0.62f, alignmentZ + 0.25f);
-            screenFrame.localRotation = Quaternion.Euler(-28f, alignmentRotation, 0f);
-        }
+        pendingQuality = quality;
+        screenMotion = 0f;
+        phase = PrintPhase.LiftingScreen;
     }
 
     private void EnterFocus()
@@ -201,6 +214,41 @@ public sealed class ScreenPrintStation : Interactable
         }
     }
 
+    private void UpdateScreenMotion(bool lowering)
+    {
+        screenMotion = Mathf.Clamp01(screenMotion + Time.deltaTime / 0.85f);
+        float lift = lowering ? 1f - screenMotion : screenMotion;
+        SetScreenLift(lift);
+
+        if (screenMotion < 1f)
+            return;
+
+        if (lowering)
+        {
+            phase = PrintPhase.Aligning;
+            return;
+        }
+
+        if (inkPass != null)
+            inkPass.gameObject.SetActive(false);
+        float quality = pendingQuality;
+        ExitFocus();
+        phase = PrintPhase.Idle;
+        Day1Game.Instance.ResolvePrint(quality);
+        if (quality < 70f)
+            SetShirtVisible(false);
+    }
+
+    private void SetScreenLift(float lift)
+    {
+        Vector3 downPosition = alignedFramePosition + new Vector3(alignmentX, 0f, alignmentZ);
+        Vector3 upPosition = downPosition + new Vector3(0f, 0.78f, 0.38f);
+        Quaternion downRotation = Quaternion.Euler(0f, alignmentRotation, 0f);
+        Quaternion upRotation = Quaternion.Euler(-36f, alignmentRotation, 0f);
+        screenFrame.localPosition = Vector3.Lerp(downPosition, upPosition, lift);
+        screenFrame.localRotation = Quaternion.Slerp(downRotation, upRotation, lift);
+    }
+
     private void SetShirtVisible(bool visible)
     {
         if (shirtObject != null)
@@ -214,22 +262,37 @@ public sealed class ScreenPrintStation : Interactable
         if (phase == PrintPhase.Idle)
             return;
 
-        float width = 540f;
+        const float width = 680f;
         float x = Screen.width * 0.5f - width * 0.5f;
-        GUI.Box(new Rect(x, Screen.height - 155f, width, 116f), GUIContent.none);
+        const float y = 175f;
+        GUI.Box(new Rect(x, y, width, 150f), GUIContent.none);
 
-        if (phase == PrintPhase.Aligning)
+        if (phase == PrintPhase.LoweringScreen)
+        {
+            GUI.Label(new Rect(x + 20, y + 20, width - 40, 42), "LOWERING THE PREPARED SCREEN OVER THE SHIRT",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 19, fontStyle = FontStyle.Bold });
+            GUI.Label(new Rect(x + 20, y + 70, width - 40, 35), "Mesh + stencil → shirt substrate",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 15 });
+        }
+        else if (phase == PrintPhase.Aligning)
         {
             float accuracy = Mathf.Clamp01(1f - new Vector2(alignmentX, alignmentZ).magnitude / 0.37f) * 100f;
-            GUI.Label(new Rect(x + 18, Screen.height - 140f, width - 36, 28), "ALIGN THE SCREEN");
-            GUI.Label(new Rect(x + 18, Screen.height - 110f, width - 36, 55),
+            GUI.Label(new Rect(x + 20, y + 18, width - 40, 30), "ALIGN THE STENCIL OVER THE SHIRT");
+            GUI.Label(new Rect(x + 20, y + 55, width - 40, 70),
                 $"Mouse: position   Q / E: rotate   Click: confirm\nCurrent centring: {accuracy:0}%   Rotation: {alignmentRotation:+0.0;-0.0;0}°");
+        }
+        else if (phase == PrintPhase.Printing)
+        {
+            GUI.Label(new Rect(x + 20, y + 12, width - 40, 30), "FORCE INK THROUGH THE MESH · PULL TOWARD YOU");
+            GUI.Label(new Rect(x + 20, y + 43, width - 40, 23), "Q/E or scroll: set tilt · Hold click and pull mouse down");
+            DrawAngleGauge(new Rect(x + 35, y + 96, width - 70, 30));
         }
         else
         {
-            GUI.Label(new Rect(x + 18, Screen.height - 140f, width - 36, 28), "PULL THE SQUEEGEE TOWARD YOU");
-            GUI.Label(new Rect(x + 18, Screen.height - 112f, width - 36, 24), "Scroll to set tilt · Hold click and pull mouse down");
-            DrawAngleGauge(new Rect(x + 20, Screen.height - 82f, width - 40, 26));
+            GUI.Label(new Rect(x + 20, y + 24, width - 40, 42), "LIFTING SCREEN · REVEALING PRINT",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 21, fontStyle = FontStyle.Bold });
+            GUI.Label(new Rect(x + 20, y + 76, width - 40, 32), "The mesh snaps away, leaving ink on the shirt.",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 15 });
         }
     }
 

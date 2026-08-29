@@ -25,8 +25,8 @@ public sealed class WorkflowStation : Interactable
                 ? "[E] Take one blank navy shirt"
                 : "Shirt storage",
             StationType.ScreenSetup => game.Stage == Day1Game.DayStage.PrepareScreen
-                ? "[E] Prepare the screen and cream ink"
-                : "Screen and ink setup",
+                ? "[E] Take prepared screen + cream ink"
+                : "Prepared screens and ink",
             StationType.SubmissionDesk => game.Stage == Day1Game.DayStage.SubmitOrder
                 ? "[E] Submit the finished shirt"
                 : "Finished orders go here",
