@@ -338,7 +338,7 @@ public sealed class ScreenPrintStation : Interactable
         else if (phase == PrintPhase.SettingSqueegeeAngle)
         {
             GUI.Label(new Rect(x + 18, y + 10, width - 36, 27), "2 · SET SQUEEGEE TO 45°");
-            GUI.Label(new Rect(x + 18, y + 39, width - 36, 42), "Tilt the WOODEN HAND TOOL only\nRed screen and rear clamp stay fixed");
+            GUI.Label(new Rect(x + 18, y + 39, width - 36, 42), "Tilt the WOODEN HAND TOOL only\nScreen and metal holder stay fixed");
             GUI.Label(new Rect(x + 18, y + 80, width - 36, 20), "Mouse sideways · Q/E · scroll");
             DrawAngleGauge(new Rect(x + 22, y + 132, width - 44, 34));
             GUI.Label(new Rect(x + 18, y + 188, width - 36, 20), "CLICK TO LOCK THE ANGLE");
