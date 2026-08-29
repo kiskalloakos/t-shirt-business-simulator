@@ -156,7 +156,9 @@ public sealed class ScreenPrintStation : Interactable
             keyboardTilt += 30f * Time.deltaTime;
         float scroll = Input.mouseScrollDelta.y * 2.5f;
         squeegeeAngle = Mathf.Clamp(squeegeeAngle + scroll + keyboardTilt, 25f, 65f);
-        squeegee.localRotation = Quaternion.Euler(squeegeeAngle, 0f, 0f);
+        // The handle leans toward the player (negative local Z) while the rubber
+        // contact edge remains planted on the mesh.
+        squeegee.localRotation = Quaternion.Euler(-squeegeeAngle, 0f, 0f);
 
         if (!Input.GetMouseButtonDown(0))
             return;
@@ -181,7 +183,7 @@ public sealed class ScreenPrintStation : Interactable
             return;
 
         pullProgress = Mathf.Clamp01(pullProgress + pull * 0.035f);
-        squeegee.localPosition = Vector3.Lerp(new Vector3(0f, 0.12f, 0.43f), new Vector3(0f, 0.12f, -0.43f), pullProgress);
+        squeegee.localPosition = Vector3.Lerp(new Vector3(0f, 0.055f, 0.48f), new Vector3(0f, 0.055f, -0.48f), pullProgress);
         UpdateInkPass();
 
         if (pullProgress >= 1f)
@@ -239,8 +241,8 @@ public sealed class ScreenPrintStation : Interactable
         pullSamples = 0f;
         if (squeegee != null)
         {
-            squeegee.localPosition = new Vector3(0f, 0.12f, 0.43f);
-            squeegee.localRotation = Quaternion.Euler(squeegeeAngle, 0f, 0f);
+            squeegee.localPosition = new Vector3(0f, 0.055f, 0.48f);
+            squeegee.localRotation = Quaternion.Euler(-squeegeeAngle, 0f, 0f);
         }
         if (printedDesign != null)
             printedDesign.enabled = false;
@@ -317,7 +319,7 @@ public sealed class ScreenPrintStation : Interactable
         const float width = 350f;
         float x = Screen.width - width - 22f;
         const float y = 22f;
-        GUI.Box(new Rect(x, y, width, 178f), GUIContent.none);
+        GUI.Box(new Rect(x, y, width, 210f), GUIContent.none);
 
         if (phase == PrintPhase.AligningRaisedScreen)
         {
@@ -336,9 +338,10 @@ public sealed class ScreenPrintStation : Interactable
         else if (phase == PrintPhase.SettingSqueegeeAngle)
         {
             GUI.Label(new Rect(x + 18, y + 10, width - 36, 27), "2 · SET SQUEEGEE TO 45°");
-            GUI.Label(new Rect(x + 18, y + 39, width - 36, 22), "Move mouse sideways · Q/E · scroll");
-            DrawAngleGauge(new Rect(x + 22, y + 101, width - 44, 34));
-            GUI.Label(new Rect(x + 18, y + 148, width - 36, 20), "CLICK TO LOCK THE ANGLE");
+            GUI.Label(new Rect(x + 18, y + 39, width - 36, 42), "Tilt the WOODEN HAND TOOL only\nRed screen and rear clamp stay fixed");
+            GUI.Label(new Rect(x + 18, y + 80, width - 36, 20), "Mouse sideways · Q/E · scroll");
+            DrawAngleGauge(new Rect(x + 22, y + 132, width - 44, 34));
+            GUI.Label(new Rect(x + 18, y + 188, width - 36, 20), "CLICK TO LOCK THE ANGLE");
         }
         else if (phase == PrintPhase.Printing)
         {

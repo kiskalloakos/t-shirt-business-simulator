@@ -165,6 +165,7 @@ public static class SimulatorProjectSetup
         Material ink = GetMaterial("CreamInk", new Color(0.94f, 0.82f, 0.48f), 0f, 0.55f);
         Material screenMat = GetTransparentMaterial("ScreenMeshTransparent", new Color(0.05f, 0.48f, 0.62f, 0.27f));
         Material skin = GetMaterial("Hands", new Color(0.74f, 0.45f, 0.31f), 0f, 0.35f);
+        Material squeegeeWood = GetMaterial("SqueegeeWood", new Color(0.64f, 0.31f, 0.11f), 0f, 0.28f);
 
         CreateBox("Base", new Vector3(0, 0.18f, 0), new Vector3(2.3f, 0.35f, 2.0f), machine, press.transform);
         CreateCylinder("Center Post", new Vector3(0, 0.72f, 0.65f), new Vector3(0.25f, 0.65f, 0.25f), machine, press.transform);
@@ -190,13 +191,23 @@ public static class SimulatorProjectSetup
         CreateBox("Order Stencil Visible In Mesh", new Vector3(0, 0.018f, -0.10f), new Vector3(0.62f, 0.012f, 0.42f), ink, frame.transform);
         GameObject inkPass = CreateBox("Ink Spreading Under Squeegee", new Vector3(0, 0.045f, 0.43f), new Vector3(1.72f, 0.018f, 0.015f), ink, frame.transform);
 
-        var toolRig = new GameObject("Squeegee and Hands");
+        var clamp = new GameObject("Fixed Rear Screen Clamp");
+        clamp.transform.SetParent(frame.transform, false);
+        clamp.transform.localPosition = new Vector3(0, 0.25f, 0.73f);
+        CreateBox("Clamp Bar", Vector3.zero, new Vector3(1.62f, 0.24f, 0.24f), machine, clamp.transform);
+        CreateBox("Clamp Jaw", new Vector3(0, -0.16f, -0.03f), new Vector3(1.72f, 0.12f, 0.32f), dark, clamp.transform);
+        CreateCylinder("Left Clamp Knob", new Vector3(-0.52f, 0.25f, 0), new Vector3(0.13f, 0.16f, 0.13f), dark, clamp.transform);
+        CreateCylinder("Right Clamp Knob", new Vector3(0.52f, 0.25f, 0), new Vector3(0.13f, 0.16f, 0.13f), dark, clamp.transform);
+
+        // The squeegee is a separate hand tool. Its origin is the rubber contact
+        // edge so changing the angle visibly pivots the grip without moving the screen.
+        var toolRig = new GameObject("Movable Wooden Squeegee");
         toolRig.transform.SetParent(frame.transform, false);
-        toolRig.transform.localPosition = new Vector3(0, 0.12f, 0.43f);
-        CreateBox("Squeegee Blade", Vector3.zero, new Vector3(1.45f, 0.16f, 0.16f), dark, toolRig.transform);
-        CreateBox("Squeegee Handle", new Vector3(0, 0.20f, 0), new Vector3(1.25f, 0.25f, 0.22f), material: machine, parent: toolRig.transform);
-        CreateSphere("Left Hand", new Vector3(-0.42f, 0.34f, 0), new Vector3(0.22f, 0.18f, 0.24f), skin, toolRig.transform);
-        CreateSphere("Right Hand", new Vector3(0.42f, 0.34f, 0), new Vector3(0.22f, 0.18f, 0.24f), skin, toolRig.transform);
+        toolRig.transform.localPosition = new Vector3(0, 0.055f, 0.48f);
+        CreateBox("Rubber Blade B", new Vector3(0, 0.13f, 0), new Vector3(1.46f, 0.24f, 0.055f), dark, toolRig.transform);
+        CreateBox("Wooden Squeegee Grip B", new Vector3(0, 0.40f, 0), new Vector3(1.30f, 0.30f, 0.20f), squeegeeWood, toolRig.transform);
+        CreateSphere("Left Hand On Squeegee", new Vector3(-0.40f, 0.57f, -0.03f), new Vector3(0.19f, 0.15f, 0.20f), skin, toolRig.transform);
+        CreateSphere("Right Hand On Squeegee", new Vector3(0.40f, 0.57f, -0.03f), new Vector3(0.19f, 0.15f, 0.20f), skin, toolRig.transform);
         var focusPose = new GameObject("Press Camera Pose").transform;
         focusPose.SetParent(press.transform);
         focusPose.localPosition = new Vector3(0f, 3.25f, -3.30f);
@@ -204,7 +215,7 @@ public static class SimulatorProjectSetup
 
         var angleFocusPose = new GameObject("Squeegee Angle Close-Up Pose").transform;
         angleFocusPose.SetParent(press.transform);
-        angleFocusPose.localPosition = new Vector3(0f, 2.08f, -2.15f);
+        angleFocusPose.localPosition = new Vector3(0.48f, 2.03f, -2.05f);
         angleFocusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.43f, -0.52f)));
 
         var station = press.AddComponent<ScreenPrintStation>();
