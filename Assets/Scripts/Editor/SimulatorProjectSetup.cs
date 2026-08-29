@@ -202,8 +202,13 @@ public static class SimulatorProjectSetup
         focusPose.localPosition = new Vector3(0f, 3.25f, -3.30f);
         focusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.12f, -0.82f)));
 
+        var angleFocusPose = new GameObject("Squeegee Angle Close-Up Pose").transform;
+        angleFocusPose.SetParent(press.transform);
+        angleFocusPose.localPosition = new Vector3(0f, 2.08f, -2.15f);
+        angleFocusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.43f, -0.52f)));
+
         var station = press.AddComponent<ScreenPrintStation>();
-        station.Configure(frame.transform, toolRig.transform, focusPose, inkPass.transform,
+        station.Configure(frame.transform, toolRig.transform, focusPose, angleFocusPose, inkPass.transform,
             mesh.GetComponent<Renderer>(), shirt, print.GetComponent<Renderer>());
         CreateSign("PRESS", new Vector3(0, 2.35f, 0.75f), Quaternion.identity, press.transform);
     }

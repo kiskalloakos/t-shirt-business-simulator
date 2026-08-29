@@ -15,6 +15,7 @@ public sealed class ScreenPrintStation : Interactable
     [SerializeField] private Transform screenFrame;
     [SerializeField] private Transform squeegee;
     [SerializeField] private Transform focusPose;
+    [SerializeField] private Transform angleFocusPose;
     [SerializeField] private Transform inkPass;
     [SerializeField] private Renderer screenMesh;
     [SerializeField] private GameObject shirtObject;
@@ -36,12 +37,13 @@ public sealed class ScreenPrintStation : Interactable
     private float screenMotion;
     private float pendingQuality;
 
-    public void Configure(Transform frame, Transform tool, Transform cameraPose, Transform inkSpread,
+    public void Configure(Transform frame, Transform tool, Transform cameraPose, Transform closeAnglePose, Transform inkSpread,
         Renderer mesh, GameObject shirt, Renderer design)
     {
         screenFrame = frame;
         squeegee = tool;
         focusPose = cameraPose;
+        angleFocusPose = closeAnglePose;
         inkPass = inkSpread;
         screenMesh = mesh;
         shirtObject = shirt;
@@ -54,6 +56,17 @@ public sealed class ScreenPrintStation : Interactable
         SetShirtVisible(false);
         if (inkPass != null)
             inkPass.gameObject.SetActive(false);
+    }
+
+    private void Awake()
+    {
+        // Configure runs in the editor when the scene is generated. Runtime-only fields
+        // must be restored from the serialized transforms when Play Mode begins.
+        if (screenFrame != null)
+        {
+            alignedFramePosition = screenFrame.localPosition;
+            screenFrame.gameObject.SetActive(false);
+        }
     }
 
     public override string GetPrompt(Day1Game game)
@@ -148,6 +161,8 @@ public sealed class ScreenPrintStation : Interactable
         if (!Input.GetMouseButtonDown(0))
             return;
 
+        MoveCameraTo(focusPose);
+        activePlayer.PlayerCamera.fieldOfView = 54f;
         pullProgress = 0f;
         angleScoreTotal = Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 20f);
         pullSamples = 1f;
@@ -200,7 +215,7 @@ public sealed class ScreenPrintStation : Interactable
         cameraRotationBeforeFocus = camera.transform.rotation;
         cameraFieldOfViewBeforeFocus = camera.fieldOfView;
         activePlayer.Controller.SetInputEnabled(false);
-        camera.transform.SetPositionAndRotation(focusPose.position, focusPose.rotation);
+        MoveCameraTo(focusPose);
         camera.fieldOfView = 54f;
     }
 
@@ -247,6 +262,8 @@ public sealed class ScreenPrintStation : Interactable
 
         if (lowering)
         {
+            MoveCameraTo(angleFocusPose);
+            activePlayer.PlayerCamera.fieldOfView = 46f;
             phase = PrintPhase.SettingSqueegeeAngle;
             return;
         }
@@ -272,6 +289,14 @@ public sealed class ScreenPrintStation : Interactable
         Quaternion upRotation = downRotation;
         screenFrame.localPosition = Vector3.Lerp(downPosition, upPosition, lift);
         screenFrame.localRotation = Quaternion.Slerp(downRotation, upRotation, lift);
+    }
+
+    private void MoveCameraTo(Transform pose)
+    {
+        if (activePlayer == null || pose == null)
+            return;
+
+        activePlayer.PlayerCamera.transform.SetPositionAndRotation(pose.position, pose.rotation);
     }
 
     private void SetShirtVisible(bool visible)
