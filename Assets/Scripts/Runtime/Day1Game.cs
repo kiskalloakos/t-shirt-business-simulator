@@ -9,6 +9,7 @@ public sealed class Day1Game : MonoBehaviour
         PrepareScreen,
         LoadPress,
         AlignAndPrint,
+        CollectFinishedShirt,
         SubmitOrder,
         Complete
     }
@@ -33,6 +34,9 @@ public sealed class Day1Game : MonoBehaviour
     public DayStage Stage { get; private set; } = DayStage.ReadOrder;
     public bool InputCaptured { get; private set; }
     public string Objective { get; private set; } = "Read today's order";
+    public bool HasBlankShirt { get; private set; }
+    public bool HasPreparedScreen { get; private set; }
+    public bool HasFinishedShirt { get; private set; }
 
     private void Awake()
     {
@@ -66,6 +70,7 @@ public sealed class Day1Game : MonoBehaviour
     {
         if (Stage != DayStage.CollectShirt)
             return;
+        HasBlankShirt = true;
         Advance(DayStage.PrepareScreen, "Prepare the screen and cream ink", "Blank shirt collected.");
     }
 
@@ -73,13 +78,16 @@ public sealed class Day1Game : MonoBehaviour
     {
         if (Stage != DayStage.PrepareScreen)
             return;
+        HasPreparedScreen = true;
         Advance(DayStage.LoadPress, "Load the shirt onto the printing press", "Screen prepared. Try not to taste the ink.");
     }
 
     public void BeginPrinting()
     {
-        if (Stage != DayStage.LoadPress)
+        if (Stage != DayStage.LoadPress || !HasBlankShirt || !HasPreparedScreen)
             return;
+        HasBlankShirt = false;
+        HasPreparedScreen = false;
         Advance(DayStage.AlignAndPrint, "Centre the design, then print at 45°", "Use the mouse carefully—this shirt cost actual money.");
         SetInputCaptured(true);
     }
@@ -91,7 +99,7 @@ public sealed class Day1Game : MonoBehaviour
 
         if (quality >= 70f)
         {
-            Advance(DayStage.SubmitOrder, "Take the finished shirt to the submission desk", $"Print accepted at {quality:0}% quality.");
+            Advance(DayStage.CollectFinishedShirt, "Lift the screen and pick up the printed shirt", $"Print accepted at {quality:0}% quality. Pick it up from the press.");
             return;
         }
 
@@ -100,11 +108,21 @@ public sealed class Day1Game : MonoBehaviour
         Advance(DayStage.CollectShirt, "Collect a replacement shirt", $"Print rejected ({quality:0}%). Wasted shirt: -${wastedShirtCost:0}.");
     }
 
-    public void SubmitOrder()
+    public void CollectFinishedShirt()
     {
-        if (Stage != DayStage.SubmitOrder)
+        if (Stage != DayStage.CollectFinishedShirt)
             return;
 
+        HasFinishedShirt = true;
+        Advance(DayStage.SubmitOrder, "Carry the finished shirt to the submission desk", "Finished shirt added to inventory.");
+    }
+
+    public void SubmitOrder()
+    {
+        if (Stage != DayStage.SubmitOrder || !HasFinishedShirt)
+            return;
+
+        HasFinishedShirt = false;
         cash += orderPayment;
         Stage = DayStage.Complete;
         Objective = "Day 1 complete";
@@ -136,6 +154,11 @@ public sealed class Day1Game : MonoBehaviour
         GUI.Label(new Rect(34, 29, 300, 28), "DAY 1 · GARAGE", headerStyle);
         GUI.Label(new Rect(34, 59, 300, 24), $"Cash  ${cash:0}     Time  {FormatTime(elapsedTime)}", bodyStyle);
         GUI.Label(new Rect(34, 85, 300, 36), Objective, bodyStyle);
+
+        GUI.Box(new Rect(width - 258, 18, 240, 132), GUIContent.none);
+        GUI.Label(new Rect(width - 242, 29, 208, 28), "INVENTORY", headerStyle);
+        string inventory = BuildInventoryText();
+        GUI.Label(new Rect(width - 242, 61, 208, 78), inventory, bodyStyle);
 
         if (!InputCaptured)
         {
@@ -170,5 +193,17 @@ public sealed class Day1Game : MonoBehaviour
     {
         int total = Mathf.FloorToInt(seconds);
         return $"{total / 60:00}:{total % 60:00}";
+    }
+
+    private string BuildInventoryText()
+    {
+        string contents = string.Empty;
+        if (HasBlankShirt)
+            contents += "• Blank navy shirt\n";
+        if (HasPreparedScreen)
+            contents += "• Prepared screen + ink\n";
+        if (HasFinishedShirt)
+            contents += "• Finished printed shirt\n";
+        return string.IsNullOrEmpty(contents) ? "(empty)" : contents.TrimEnd();
     }
 }

@@ -132,9 +132,22 @@ public static class SimulatorProjectSetup
         Material blue = GetMaterial("ScreenBlue", new Color(0.05f, 0.28f, 0.5f), 0.25f, 0.3f);
 
         CreateTable(Vector3.zero, setup.transform, wood, steel);
-        CreateCylinder("Cream Ink", new Vector3(-0.55f, 1.28f, 0), new Vector3(0.23f, 0.22f, 0.23f), ink, setup.transform);
-        CreateBox("Prepared Screen", new Vector3(0.35f, 1.35f, 0), new Vector3(1.15f, 0.08f, 0.72f), blue, setup.transform);
-        setup.AddComponent<WorkflowStation>().Configure(WorkflowStation.StationType.ScreenSetup);
+        CreateCylinder("Cream Ink Bowl", new Vector3(-0.58f, 1.19f, 0), new Vector3(0.36f, 0.16f, 0.36f), steel, setup.transform);
+        CreateCylinder("Cream Ink Surface", new Vector3(-0.58f, 1.37f, 0), new Vector3(0.31f, 0.025f, 0.31f), ink, setup.transform);
+        CreateBox("Screen Frame", new Vector3(0.46f, 1.17f, 0), new Vector3(1.55f, 0.09f, 1.0f), blue, setup.transform);
+        CreateBox("Screen Interior", new Vector3(0.46f, 1.225f, 0), new Vector3(1.25f, 0.025f, 0.72f), steel, setup.transform);
+
+        GameObject mixingTool = CreateCylinder("Mixing Stick", new Vector3(-0.58f, 1.55f, 0), new Vector3(0.045f, 0.28f, 0.045f), wood, setup.transform);
+        GameObject coatingTool = CreateBox("Coating Tool", new Vector3(-0.15f, 1.33f, 0), new Vector3(0.18f, 0.10f, 0.82f), steel, setup.transform);
+        GameObject coatingFill = CreateBox("Prepared Emulsion", new Vector3(-0.155f, 1.255f, 0), new Vector3(0.02f, 0.018f, 0.65f), blue, setup.transform);
+
+        var focusPose = new GameObject("Preparation Camera Pose").transform;
+        focusPose.SetParent(setup.transform, false);
+        focusPose.localPosition = new Vector3(0, 2.55f, -2.35f);
+        focusPose.localRotation = Quaternion.Euler(48f, 0, 0);
+
+        setup.AddComponent<ScreenPreparationStation>().Configure(
+            focusPose, mixingTool.transform, coatingTool.transform, coatingFill.transform);
         CreateSign("SCREEN + INK", new Vector3(0, 2.15f, 0), Quaternion.identity, setup.transform);
     }
 
@@ -160,15 +173,21 @@ public static class SimulatorProjectSetup
         Material platen = GetMaterial("Platen", new Color(0.68f, 0.58f, 0.38f), 0f, 0.22f);
         Material shirtMat = GetMaterial("NavyShirt", new Color(0.035f, 0.09f, 0.18f), 0f, 0.25f);
         Material ink = GetMaterial("CreamInk", new Color(0.94f, 0.82f, 0.48f), 0f, 0.55f);
-        Material screenMat = GetMaterial("ScreenBlue", new Color(0.05f, 0.28f, 0.5f), 0.25f, 0.3f);
+        Material screenMat = GetTransparentMaterial("ScreenMeshTransparent", new Color(0.05f, 0.48f, 0.62f, 0.27f));
+        Material skin = GetMaterial("Hands", new Color(0.74f, 0.45f, 0.31f), 0f, 0.35f);
 
         CreateBox("Base", new Vector3(0, 0.18f, 0), new Vector3(2.3f, 0.35f, 2.0f), machine, press.transform);
         CreateCylinder("Center Post", new Vector3(0, 0.72f, 0.65f), new Vector3(0.25f, 0.65f, 0.25f), machine, press.transform);
         CreateBox("Arm", new Vector3(0, 1.22f, 0), new Vector3(0.3f, 0.22f, 1.5f), dark, press.transform);
         CreateBox("Platen", new Vector3(0, 1.02f, -0.95f), new Vector3(2.05f, 0.13f, 2.25f), platen, press.transform);
 
-        GameObject shirt = CreateBox("Shirt on Platen", new Vector3(0, 1.105f, -0.95f), new Vector3(1.75f, 0.035f, 1.85f), shirtMat, press.transform);
-        GameObject print = CreateBox("Printed Design", new Vector3(0, 1.13f, -1.1f), new Vector3(0.62f, 0.025f, 0.42f), ink, press.transform);
+        var shirt = new GameObject("Shirt on Platen");
+        shirt.transform.SetParent(press.transform, false);
+        shirt.transform.localPosition = new Vector3(0, 1.105f, -0.95f);
+        CreateBox("Shirt Body", Vector3.zero, new Vector3(1.55f, 0.035f, 1.85f), shirtMat, shirt.transform);
+        CreateBox("Left Sleeve", new Vector3(-0.98f, 0, 0.46f), new Vector3(0.55f, 0.035f, 0.72f), shirtMat, shirt.transform);
+        CreateBox("Right Sleeve", new Vector3(0.98f, 0, 0.46f), new Vector3(0.55f, 0.035f, 0.72f), shirtMat, shirt.transform);
+        GameObject print = CreateBox("Printed Design", new Vector3(0, 0.028f, -0.15f), new Vector3(0.62f, 0.025f, 0.42f), ink, shirt.transform);
 
         var frame = new GameObject("Movable Screen Frame");
         frame.transform.SetParent(press.transform);
@@ -177,16 +196,24 @@ public static class SimulatorProjectSetup
         CreateBox("Frame Bottom", new Vector3(0, 0, -0.78f), new Vector3(2.15f, 0.10f, 0.12f), machine, frame.transform);
         CreateBox("Frame Left", new Vector3(-1.02f, 0, 0), new Vector3(0.12f, 0.10f, 1.65f), machine, frame.transform);
         CreateBox("Frame Right", new Vector3(1.02f, 0, 0), new Vector3(0.12f, 0.10f, 1.65f), machine, frame.transform);
-        CreateBox("Screen Mesh", Vector3.zero, new Vector3(1.92f, 0.025f, 1.42f), screenMat, frame.transform);
+        GameObject mesh = CreateBox("Transparent Screen Mesh", Vector3.zero, new Vector3(1.92f, 0.018f, 1.42f), screenMat, frame.transform);
+        GameObject inkPass = CreateBox("Ink Spreading Under Squeegee", new Vector3(0, 0.045f, 0.43f), new Vector3(1.72f, 0.018f, 0.015f), ink, frame.transform);
 
-        GameObject squeegee = CreateBox("Squeegee", new Vector3(0, 0.12f, 0.43f), new Vector3(1.45f, 0.16f, 0.16f), dark, frame.transform);
+        var toolRig = new GameObject("Squeegee and Hands");
+        toolRig.transform.SetParent(frame.transform, false);
+        toolRig.transform.localPosition = new Vector3(0, 0.12f, 0.43f);
+        CreateBox("Squeegee Blade", Vector3.zero, new Vector3(1.45f, 0.16f, 0.16f), dark, toolRig.transform);
+        CreateBox("Squeegee Handle", new Vector3(0, 0.20f, 0), new Vector3(1.25f, 0.25f, 0.22f), material: machine, parent: toolRig.transform);
+        CreateSphere("Left Hand", new Vector3(-0.42f, 0.34f, 0), new Vector3(0.22f, 0.18f, 0.24f), skin, toolRig.transform);
+        CreateSphere("Right Hand", new Vector3(0.42f, 0.34f, 0), new Vector3(0.22f, 0.18f, 0.24f), skin, toolRig.transform);
         var focusPose = new GameObject("Press Camera Pose").transform;
         focusPose.SetParent(press.transform);
-        focusPose.localPosition = new Vector3(0, 2.75f, -2.75f);
-        focusPose.localRotation = Quaternion.Euler(46f, 0, 0);
+        focusPose.localPosition = new Vector3(0, 2.48f, -2.42f);
+        focusPose.localRotation = Quaternion.Euler(49f, 0, 0);
 
         var station = press.AddComponent<ScreenPrintStation>();
-        station.Configure(frame.transform, squeegee.transform, focusPose, shirt.GetComponent<Renderer>(), print.GetComponent<Renderer>());
+        station.Configure(frame.transform, toolRig.transform, focusPose, inkPass.transform,
+            mesh.GetComponent<Renderer>(), shirt, print.GetComponent<Renderer>());
         CreateSign("PRESS", new Vector3(0, 2.35f, 0.75f), Quaternion.identity, press.transform);
     }
 
@@ -267,6 +294,17 @@ public static class SimulatorProjectSetup
         return item;
     }
 
+    private static GameObject CreateSphere(string name, Vector3 localPosition, Vector3 scale, Material material, Transform parent)
+    {
+        GameObject item = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        item.name = name;
+        item.transform.SetParent(parent, false);
+        item.transform.localPosition = localPosition;
+        item.transform.localScale = scale;
+        item.GetComponent<Renderer>().sharedMaterial = material;
+        return item;
+    }
+
     private static void CreateSign(string text, Vector3 localPosition, Quaternion localRotation, Transform parent)
     {
         var sign = new GameObject($"{text} Sign");
@@ -298,6 +336,21 @@ public static class SimulatorProjectSetup
         }
 
         Materials[name] = material;
+        return material;
+    }
+
+    private static Material GetTransparentMaterial(string name, Color color)
+    {
+        Material material = GetMaterial(name, color, 0f, 0.28f);
+        material.color = color;
+        material.SetFloat("_Surface", 1f);
+        material.SetFloat("_Blend", 0f);
+        material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+        material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+        material.SetFloat("_ZWrite", 0f);
+        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        material.renderQueue = (int)RenderQueue.Transparent;
+        EditorUtility.SetDirty(material);
         return material;
     }
 }

@@ -12,7 +12,9 @@ public sealed class ScreenPrintStation : Interactable
     [SerializeField] private Transform screenFrame;
     [SerializeField] private Transform squeegee;
     [SerializeField] private Transform focusPose;
-    [SerializeField] private Renderer shirtRenderer;
+    [SerializeField] private Transform inkPass;
+    [SerializeField] private Renderer screenMesh;
+    [SerializeField] private GameObject shirtObject;
     [SerializeField] private Renderer printedDesign;
 
     private PrintPhase phase;
@@ -28,16 +30,21 @@ public sealed class ScreenPrintStation : Interactable
     private float angleScoreTotal;
     private float pullSamples;
 
-    public void Configure(Transform frame, Transform tool, Transform cameraPose, Renderer shirt, Renderer design)
+    public void Configure(Transform frame, Transform tool, Transform cameraPose, Transform inkSpread,
+        Renderer mesh, GameObject shirt, Renderer design)
     {
         screenFrame = frame;
         squeegee = tool;
         focusPose = cameraPose;
-        shirtRenderer = shirt;
+        inkPass = inkSpread;
+        screenMesh = mesh;
+        shirtObject = shirt;
         printedDesign = design;
         if (screenFrame != null)
             alignedFramePosition = screenFrame.localPosition;
         SetShirtVisible(false);
+        if (inkPass != null)
+            inkPass.gameObject.SetActive(false);
     }
 
     public override string GetPrompt(Day1Game game)
@@ -46,12 +53,20 @@ public sealed class ScreenPrintStation : Interactable
         {
             Day1Game.DayStage.LoadPress => "[E] Load shirt and work at the press",
             Day1Game.DayStage.AlignAndPrint => "Printing in progress",
+            Day1Game.DayStage.CollectFinishedShirt => "[E] Lift screen and pick up finished shirt",
             _ => "Manual screen-printing press"
         };
     }
 
     public override void Interact(PlayerInteractor player, Day1Game game)
     {
+        if (game.Stage == Day1Game.DayStage.CollectFinishedShirt && phase == PrintPhase.Idle)
+        {
+            SetShirtVisible(false);
+            game.CollectFinishedShirt();
+            return;
+        }
+
         if (game.Stage != Day1Game.DayStage.LoadPress || phase != PrintPhase.Idle)
             return;
 
@@ -88,7 +103,11 @@ public sealed class ScreenPrintStation : Interactable
         screenFrame.localRotation = Quaternion.Euler(0f, alignmentRotation, 0f);
 
         if (Input.GetMouseButtonDown(0))
+        {
             phase = PrintPhase.Printing;
+            if (inkPass != null)
+                inkPass.gameObject.SetActive(true);
+        }
     }
 
     private void UpdatePrinting()
@@ -108,6 +127,7 @@ public sealed class ScreenPrintStation : Interactable
         angleScoreTotal += Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 20f);
         pullSamples += 1f;
         squeegee.localPosition = Vector3.Lerp(new Vector3(0f, 0.12f, 0.43f), new Vector3(0f, 0.12f, -0.43f), pullProgress);
+        UpdateInkPass();
 
         if (pullProgress >= 1f)
             CompletePrint();
@@ -125,7 +145,7 @@ public sealed class ScreenPrintStation : Interactable
         {
             printedDesign.enabled = true;
             printedDesign.transform.localPosition = new Vector3(alignmentX, printedDesign.transform.localPosition.y, alignmentZ);
-            printedDesign.transform.localRotation = Quaternion.Euler(90f, alignmentRotation, 0f);
+            printedDesign.transform.localRotation = Quaternion.Euler(0f, alignmentRotation, 0f);
         }
 
         ExitFocus();
@@ -134,6 +154,11 @@ public sealed class ScreenPrintStation : Interactable
 
         if (quality < 70f)
             SetShirtVisible(false);
+        else
+        {
+            screenFrame.localPosition = alignedFramePosition + new Vector3(alignmentX, 0.62f, alignmentZ + 0.25f);
+            screenFrame.localRotation = Quaternion.Euler(-28f, alignmentRotation, 0f);
+        }
     }
 
     private void EnterFocus()
@@ -169,12 +194,17 @@ public sealed class ScreenPrintStation : Interactable
         }
         if (printedDesign != null)
             printedDesign.enabled = false;
+        if (inkPass != null)
+        {
+            inkPass.gameObject.SetActive(false);
+            UpdateInkPass();
+        }
     }
 
     private void SetShirtVisible(bool visible)
     {
-        if (shirtRenderer != null)
-            shirtRenderer.enabled = visible;
+        if (shirtObject != null)
+            shirtObject.SetActive(visible);
         if (!visible && printedDesign != null)
             printedDesign.enabled = false;
     }
@@ -198,8 +228,40 @@ public sealed class ScreenPrintStation : Interactable
         else
         {
             GUI.Label(new Rect(x + 18, Screen.height - 140f, width - 36, 28), "PULL THE SQUEEGEE TOWARD YOU");
-            GUI.Label(new Rect(x + 18, Screen.height - 110f, width - 36, 55),
-                $"Scroll: set angle   Hold click + pull mouse down\nAngle: {squeegeeAngle:0}° / 45°   Pull: {pullProgress * 100f:0}%");
+            GUI.Label(new Rect(x + 18, Screen.height - 112f, width - 36, 24), "Scroll to set tilt · Hold click and pull mouse down");
+            DrawAngleGauge(new Rect(x + 20, Screen.height - 82f, width - 40, 26));
         }
+    }
+
+    private void UpdateInkPass()
+    {
+        if (inkPass == null)
+            return;
+
+        float length = Mathf.Lerp(0.015f, 0.88f, pullProgress);
+        inkPass.localScale = new Vector3(1.72f, 0.018f, length);
+        inkPass.localPosition = new Vector3(0f, 0.045f, 0.43f - length * 0.5f);
+    }
+
+    private void DrawAngleGauge(Rect rect)
+    {
+        GUI.Box(rect, GUIContent.none);
+        float targetX = Mathf.Lerp(rect.x, rect.xMax, (45f - 25f) / 40f);
+        Color previous = GUI.color;
+        GUI.color = new Color(0.2f, 0.85f, 0.38f, 0.75f);
+        GUI.DrawTexture(new Rect(targetX - 28f, rect.y + 3f, 56f, rect.height - 6f), Texture2D.whiteTexture);
+
+        float markerX = Mathf.Lerp(rect.x, rect.xMax, (squeegeeAngle - 25f) / 40f);
+        bool perfect = Mathf.Abs(squeegeeAngle - 45f) <= 2f;
+        GUI.color = perfect ? Color.white : new Color(1f, 0.38f, 0.2f);
+        GUI.DrawTexture(new Rect(markerX - 3f, rect.y - 4f, 6f, rect.height + 8f), Texture2D.whiteTexture);
+        GUI.color = previous;
+
+        string status = perfect ? "PERFECT" : squeegeeAngle < 43f ? "TILT MORE" : "TILT LESS";
+        GUI.Label(new Rect(rect.x, rect.y - 29f, rect.width, 25f),
+            $"ANGLE  {squeegeeAngle:0}° / 45°  ·  {status}  ·  PULL {pullProgress * 100f:0}%",
+            new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold });
+        GUI.Label(new Rect(rect.x, rect.yMax + 1f, rect.width, 20f), "25°                         45°                         65°",
+            new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 11 });
     }
 }
