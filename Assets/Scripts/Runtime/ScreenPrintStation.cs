@@ -5,8 +5,9 @@ public sealed class ScreenPrintStation : Interactable
     private enum PrintPhase
     {
         Idle,
+        AligningRaisedScreen,
         LoweringScreen,
-        Aligning,
+        SettingSqueegeeAngle,
         Printing,
         LiftingScreen
     }
@@ -23,6 +24,7 @@ public sealed class ScreenPrintStation : Interactable
     private PlayerInteractor activePlayer;
     private Vector3 cameraPositionBeforeFocus;
     private Quaternion cameraRotationBeforeFocus;
+    private float cameraFieldOfViewBeforeFocus;
     private Vector3 alignedFramePosition;
     private float alignmentX = 0.18f;
     private float alignmentZ = -0.14f;
@@ -45,7 +47,10 @@ public sealed class ScreenPrintStation : Interactable
         shirtObject = shirt;
         printedDesign = design;
         if (screenFrame != null)
+        {
             alignedFramePosition = screenFrame.localPosition;
+            screenFrame.gameObject.SetActive(false);
+        }
         SetShirtVisible(false);
         if (inkPass != null)
             inkPass.gameObject.SetActive(false);
@@ -67,6 +72,7 @@ public sealed class ScreenPrintStation : Interactable
         if (game.Stage == Day1Game.DayStage.CollectFinishedShirt && phase == PrintPhase.Idle)
         {
             SetShirtVisible(false);
+            screenFrame.gameObject.SetActive(false);
             game.CollectFinishedShirt();
             return;
         }
@@ -77,11 +83,11 @@ public sealed class ScreenPrintStation : Interactable
         activePlayer = player;
         game.BeginPrinting();
         SetShirtVisible(true);
+        screenFrame.gameObject.SetActive(true);
         EnterFocus();
         ResetAlignment();
         SetScreenLift(1f);
-        screenMotion = 0f;
-        phase = PrintPhase.LoweringScreen;
+        phase = PrintPhase.AligningRaisedScreen;
     }
 
     private void Update()
@@ -91,11 +97,14 @@ public sealed class ScreenPrintStation : Interactable
 
         switch (phase)
         {
+            case PrintPhase.AligningRaisedScreen:
+                UpdateAlignment();
+                break;
             case PrintPhase.LoweringScreen:
                 UpdateScreenMotion(lowering: true);
                 break;
-            case PrintPhase.Aligning:
-                UpdateAlignment();
+            case PrintPhase.SettingSqueegeeAngle:
+                UpdateSqueegeeAngle();
                 break;
             case PrintPhase.Printing:
                 UpdatePrinting();
@@ -116,19 +125,18 @@ public sealed class ScreenPrintStation : Interactable
             alignmentRotation -= 35f * Time.deltaTime;
         alignmentRotation = Mathf.Clamp(alignmentRotation, -15f, 15f);
 
-        SetScreenLift(0f);
+        SetScreenLift(1f);
 
         if (Input.GetMouseButtonDown(0))
         {
-            phase = PrintPhase.Printing;
-            if (inkPass != null)
-                inkPass.gameObject.SetActive(true);
+            screenMotion = 0f;
+            phase = PrintPhase.LoweringScreen;
         }
     }
 
-    private void UpdatePrinting()
+    private void UpdateSqueegeeAngle()
     {
-        float keyboardTilt = 0f;
+        float keyboardTilt = Input.GetAxisRaw("Mouse X") * 0.7f;
         if (Input.GetKey(KeyCode.Q))
             keyboardTilt -= 30f * Time.deltaTime;
         if (Input.GetKey(KeyCode.E))
@@ -137,16 +145,27 @@ public sealed class ScreenPrintStation : Interactable
         squeegeeAngle = Mathf.Clamp(squeegeeAngle + scroll + keyboardTilt, 25f, 65f);
         squeegee.localRotation = Quaternion.Euler(squeegeeAngle, 0f, 0f);
 
+        if (!Input.GetMouseButtonDown(0))
+            return;
+
+        pullProgress = 0f;
+        angleScoreTotal = Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 20f);
+        pullSamples = 1f;
+        if (inkPass != null)
+            inkPass.gameObject.SetActive(true);
+        phase = PrintPhase.Printing;
+    }
+
+    private void UpdatePrinting()
+    {
         if (!Input.GetMouseButton(0))
             return;
 
-        float pull = Mathf.Max(0f, -Input.GetAxis("Mouse Y"));
+        float pull = Mathf.Max(0f, -Input.GetAxisRaw("Mouse Y"));
         if (pull <= 0.001f)
             return;
 
-        pullProgress = Mathf.Clamp01(pullProgress + pull * 0.018f);
-        angleScoreTotal += Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 20f);
-        pullSamples += 1f;
+        pullProgress = Mathf.Clamp01(pullProgress + pull * 0.035f);
         squeegee.localPosition = Vector3.Lerp(new Vector3(0f, 0.12f, 0.43f), new Vector3(0f, 0.12f, -0.43f), pullProgress);
         UpdateInkPass();
 
@@ -179,14 +198,17 @@ public sealed class ScreenPrintStation : Interactable
         Camera camera = activePlayer.PlayerCamera;
         cameraPositionBeforeFocus = camera.transform.position;
         cameraRotationBeforeFocus = camera.transform.rotation;
+        cameraFieldOfViewBeforeFocus = camera.fieldOfView;
         activePlayer.Controller.SetInputEnabled(false);
         camera.transform.SetPositionAndRotation(focusPose.position, focusPose.rotation);
+        camera.fieldOfView = 54f;
     }
 
     private void ExitFocus()
     {
         Camera camera = activePlayer.PlayerCamera;
         camera.transform.SetPositionAndRotation(cameraPositionBeforeFocus, cameraRotationBeforeFocus);
+        camera.fieldOfView = cameraFieldOfViewBeforeFocus;
         activePlayer.Controller.SetInputEnabled(true);
         activePlayer = null;
     }
@@ -225,7 +247,7 @@ public sealed class ScreenPrintStation : Interactable
 
         if (lowering)
         {
-            phase = PrintPhase.Aligning;
+            phase = PrintPhase.SettingSqueegeeAngle;
             return;
         }
 
@@ -236,15 +258,18 @@ public sealed class ScreenPrintStation : Interactable
         phase = PrintPhase.Idle;
         Day1Game.Instance.ResolvePrint(quality);
         if (quality < 70f)
+        {
             SetShirtVisible(false);
+            screenFrame.gameObject.SetActive(false);
+        }
     }
 
     private void SetScreenLift(float lift)
     {
         Vector3 downPosition = alignedFramePosition + new Vector3(alignmentX, 0f, alignmentZ);
-        Vector3 upPosition = downPosition + new Vector3(0f, 0.78f, 0.38f);
+        Vector3 upPosition = downPosition + new Vector3(0f, 0.68f, 0f);
         Quaternion downRotation = Quaternion.Euler(0f, alignmentRotation, 0f);
-        Quaternion upRotation = Quaternion.Euler(-36f, alignmentRotation, 0f);
+        Quaternion upRotation = downRotation;
         screenFrame.localPosition = Vector3.Lerp(downPosition, upPosition, lift);
         screenFrame.localRotation = Quaternion.Slerp(downRotation, upRotation, lift);
     }
@@ -262,30 +287,41 @@ public sealed class ScreenPrintStation : Interactable
         if (phase == PrintPhase.Idle)
             return;
 
-        const float width = 680f;
-        float x = Screen.width * 0.5f - width * 0.5f;
-        const float y = 175f;
-        GUI.Box(new Rect(x, y, width, 150f), GUIContent.none);
+        Matrix4x4 previousMatrix = GUI.matrix;
+        GUI.matrix = Matrix4x4.identity;
+        const float width = 350f;
+        float x = Screen.width - width - 22f;
+        const float y = 22f;
+        GUI.Box(new Rect(x, y, width, 178f), GUIContent.none);
 
-        if (phase == PrintPhase.LoweringScreen)
-        {
-            GUI.Label(new Rect(x + 20, y + 20, width - 40, 42), "LOWERING THE PREPARED SCREEN OVER THE SHIRT",
-                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 19, fontStyle = FontStyle.Bold });
-            GUI.Label(new Rect(x + 20, y + 70, width - 40, 35), "Mesh + stencil → shirt substrate",
-                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 15 });
-        }
-        else if (phase == PrintPhase.Aligning)
+        if (phase == PrintPhase.AligningRaisedScreen)
         {
             float accuracy = Mathf.Clamp01(1f - new Vector2(alignmentX, alignmentZ).magnitude / 0.37f) * 100f;
-            GUI.Label(new Rect(x + 20, y + 18, width - 40, 30), "ALIGN THE STENCIL OVER THE SHIRT");
-            GUI.Label(new Rect(x + 20, y + 55, width - 40, 70),
-                $"Mouse: position   Q / E: rotate   Click: confirm\nCurrent centring: {accuracy:0}%   Rotation: {alignmentRotation:+0.0;-0.0;0}°");
+            GUI.Label(new Rect(x + 18, y + 14, width - 36, 30), "1 · ALIGN RAISED SCREEN");
+            GUI.Label(new Rect(x + 18, y + 48, width - 36, 92),
+                $"Mouse: move stencil over shirt\nQ / E: rotate screen\nCentring: {accuracy:0}%   Rotation: {alignmentRotation:+0.0;-0.0;0}°\n\nCLICK TO LOWER SCREEN");
+        }
+        else if (phase == PrintPhase.LoweringScreen)
+        {
+            GUI.Label(new Rect(x + 18, y + 28, width - 36, 40), "LOWERING SCREEN ONTO SHIRT",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 17, fontStyle = FontStyle.Bold });
+            GUI.Label(new Rect(x + 18, y + 78, width - 36, 40), "The stencil stays aligned as the mesh meets the fabric.",
+                new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 13, wordWrap = true });
+        }
+        else if (phase == PrintPhase.SettingSqueegeeAngle)
+        {
+            GUI.Label(new Rect(x + 18, y + 10, width - 36, 27), "2 · SET SQUEEGEE TO 45°");
+            GUI.Label(new Rect(x + 18, y + 39, width - 36, 22), "Move mouse sideways · Q/E · scroll");
+            DrawAngleGauge(new Rect(x + 22, y + 101, width - 44, 34));
+            GUI.Label(new Rect(x + 18, y + 148, width - 36, 20), "CLICK TO LOCK THE ANGLE");
         }
         else if (phase == PrintPhase.Printing)
         {
-            GUI.Label(new Rect(x + 20, y + 12, width - 40, 30), "FORCE INK THROUGH THE MESH · PULL TOWARD YOU");
-            GUI.Label(new Rect(x + 20, y + 43, width - 40, 23), "Q/E or scroll: set tilt · Hold click and pull mouse down");
-            DrawAngleGauge(new Rect(x + 35, y + 96, width - 70, 30));
+            GUI.Label(new Rect(x + 18, y + 10, width - 36, 27), "3 · PULL TOP → BOTTOM");
+            GUI.Label(new Rect(x + 18, y + 42, width - 36, 48), "Hold left click and drag the mouse DOWN toward yourself. Keep moving downward.",
+                new GUIStyle(GUI.skin.label) { fontSize = 13, wordWrap = true });
+            DrawPullGauge(new Rect(x + 25, y + 112, width - 50, 32));
+            GUI.Label(new Rect(x + 18, y + 149, width - 36, 20), $"Locked angle: {squeegeeAngle:0}°");
         }
         else
         {
@@ -294,6 +330,8 @@ public sealed class ScreenPrintStation : Interactable
             GUI.Label(new Rect(x + 20, y + 76, width - 40, 32), "The mesh snaps away, leaving ink on the shirt.",
                 new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 15 });
         }
+
+        GUI.matrix = previousMatrix;
     }
 
     private void UpdateInkPass()
@@ -320,11 +358,22 @@ public sealed class ScreenPrintStation : Interactable
         GUI.DrawTexture(new Rect(markerX - 3f, rect.y - 4f, 6f, rect.height + 8f), Texture2D.whiteTexture);
         GUI.color = previous;
 
-        string status = perfect ? "PERFECT" : squeegeeAngle < 43f ? "TILT MORE" : "TILT LESS";
+        string status = perfect ? "PERFECT — 45°" : squeegeeAngle < 43f ? "TILT FORWARD" : "TILT BACK";
         GUI.Label(new Rect(rect.x, rect.y - 29f, rect.width, 25f),
-            $"ANGLE  {squeegeeAngle:0}° / 45°  ·  {status}  ·  PULL {pullProgress * 100f:0}%",
+            $"{squeegeeAngle:0}°  ·  {status}",
             new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold });
         GUI.Label(new Rect(rect.x, rect.yMax + 1f, rect.width, 20f), "25°                         45°                         65°",
             new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 11 });
+    }
+
+    private void DrawPullGauge(Rect rect)
+    {
+        GUI.Box(rect, GUIContent.none);
+        Color previous = GUI.color;
+        GUI.color = new Color(0.92f, 0.26f, 0.12f, 0.9f);
+        GUI.DrawTexture(new Rect(rect.x + 3f, rect.y + 3f, (rect.width - 6f) * pullProgress, rect.height - 6f), Texture2D.whiteTexture);
+        GUI.color = previous;
+        GUI.Label(rect, $"PULL  ↓  {pullProgress * 100f:0}%",
+            new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold });
     }
 }

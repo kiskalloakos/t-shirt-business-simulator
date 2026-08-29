@@ -74,7 +74,7 @@ public sealed class Day1Game : MonoBehaviour
         if (Stage != DayStage.CollectShirt)
             return;
         HasBlankShirt = true;
-        Advance(DayStage.PrepareScreen, "Prepare the screen and cream ink", "Blank shirt collected.");
+        Advance(DayStage.PrepareScreen, "Add cream ink and the order stencil to a screen", "Blank shirt collected.");
     }
 
     public void PrepareScreen()
@@ -82,7 +82,7 @@ public sealed class Day1Game : MonoBehaviour
         if (Stage != DayStage.PrepareScreen)
             return;
         HasPreparedScreen = true;
-        Advance(DayStage.LoadPress, "Take the shirt and prepared screen to the press", "Prepared screen + cream ink added to inventory.");
+        Advance(DayStage.LoadPress, "Take the shirt and prepared screen to the press", "Order stencil and cream ink added. Prepared screen collected.");
     }
 
     public void BeginPrinting()
@@ -150,6 +150,7 @@ public sealed class Day1Game : MonoBehaviour
     private void OnGUI()
     {
         EnsureStyles();
+        Matrix4x4 previousMatrix = GUI.matrix;
         float scale = Mathf.Clamp(Screen.height / 900f, 0.8f, 1.3f);
         GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
         float width = Screen.width / scale;
@@ -182,6 +183,8 @@ public sealed class Day1Game : MonoBehaviour
             GUI.Label(new Rect(width * 0.5f - 200, height * 0.5f - 55, 400, 150),
                 $"Print quality: {finalQuality:0}%\nWasted shirts: {wastedShirts}\nTime: {FormatTime(elapsedTime)}\nClosing cash: ${cash:0}", bodyStyle);
         }
+
+        GUI.matrix = previousMatrix;
     }
 
     private void EnsureStyles()

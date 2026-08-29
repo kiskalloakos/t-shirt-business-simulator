@@ -129,13 +129,15 @@ public static class SimulatorProjectSetup
         Material wood = GetMaterial("Worktop", new Color(0.40f, 0.25f, 0.12f), 0f, 0.24f);
         Material steel = GetMaterial("Steel", new Color(0.28f, 0.32f, 0.35f), 0.75f, 0.4f);
         Material ink = GetMaterial("CreamInk", new Color(0.94f, 0.82f, 0.48f), 0f, 0.55f);
-        Material blue = GetMaterial("ScreenBlue", new Color(0.05f, 0.28f, 0.5f), 0.25f, 0.3f);
+        Material red = GetMaterial("MachineRed", new Color(0.52f, 0.065f, 0.04f), 0.62f, 0.35f);
 
         CreateTable(Vector3.zero, setup.transform, wood, steel);
-        CreateCylinder("Cream Ink Container", new Vector3(-0.58f, 1.24f, 0), new Vector3(0.32f, 0.24f, 0.32f), ink, setup.transform);
-        CreateBox("Ready Screen Frame", new Vector3(0.42f, 1.24f, 0), new Vector3(1.45f, 0.10f, 0.92f), blue, setup.transform);
-        CreateBox("Ready Stencil Mesh", new Vector3(0.42f, 1.305f, 0), new Vector3(1.18f, 0.025f, 0.68f), steel, setup.transform);
-        setup.AddComponent<WorkflowStation>().Configure(WorkflowStation.StationType.ScreenSetup);
+        var kit = new GameObject("Prepared Order Screen Kit");
+        kit.transform.SetParent(setup.transform, false);
+        CreateCylinder("Cream Ink Container", new Vector3(-0.58f, 1.24f, 0), new Vector3(0.32f, 0.24f, 0.32f), ink, kit.transform);
+        CreateBox("Ready Red Screen", new Vector3(0.42f, 1.24f, 0), new Vector3(1.45f, 0.10f, 0.92f), red, kit.transform);
+        CreateBox("Order Stencil", new Vector3(0.42f, 1.305f, 0), new Vector3(0.62f, 0.025f, 0.42f), ink, kit.transform);
+        setup.AddComponent<WorkflowStation>().Configure(WorkflowStation.StationType.ScreenSetup, kit);
         CreateSign("SCREEN + INK", new Vector3(0, 2.15f, 0), Quaternion.identity, setup.transform);
     }
 
@@ -185,6 +187,7 @@ public static class SimulatorProjectSetup
         CreateBox("Frame Left", new Vector3(-1.02f, 0, 0), new Vector3(0.12f, 0.10f, 1.65f), machine, frame.transform);
         CreateBox("Frame Right", new Vector3(1.02f, 0, 0), new Vector3(0.12f, 0.10f, 1.65f), machine, frame.transform);
         GameObject mesh = CreateBox("Transparent Screen Mesh", Vector3.zero, new Vector3(1.92f, 0.018f, 1.42f), screenMat, frame.transform);
+        CreateBox("Order Stencil Visible In Mesh", new Vector3(0, 0.018f, -0.10f), new Vector3(0.62f, 0.012f, 0.42f), ink, frame.transform);
         GameObject inkPass = CreateBox("Ink Spreading Under Squeegee", new Vector3(0, 0.045f, 0.43f), new Vector3(1.72f, 0.018f, 0.015f), ink, frame.transform);
 
         var toolRig = new GameObject("Squeegee and Hands");
@@ -196,8 +199,8 @@ public static class SimulatorProjectSetup
         CreateSphere("Right Hand", new Vector3(0.42f, 0.34f, 0), new Vector3(0.22f, 0.18f, 0.24f), skin, toolRig.transform);
         var focusPose = new GameObject("Press Camera Pose").transform;
         focusPose.SetParent(press.transform);
-        focusPose.localPosition = new Vector3(2.45f, 2.75f, -3.15f);
-        focusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.18f, -0.95f)));
+        focusPose.localPosition = new Vector3(0f, 3.25f, -3.30f);
+        focusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.12f, -0.82f)));
 
         var station = press.AddComponent<ScreenPrintStation>();
         station.Configure(frame.transform, toolRig.transform, focusPose, inkPass.transform,

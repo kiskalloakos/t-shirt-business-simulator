@@ -33,12 +33,12 @@ The first skill is one-colour screen printing on t-shirts for customer orders. T
 The core skill challenge is correctly aligning and printing each order on a shirt:
 
 1. Receive the order and its print requirements.
-2. Fetch a shirt from storage, then collect an already-prepared screen and ink at the setup area. Screen creation and emulsion preparation are deferred for now.
+2. Fetch a shirt from storage, then use one interaction at the setup area to add the order stencil and cream ink to a screen and collect it. Detailed screen coating and exposure are deferred for now.
 3. Place and centre the shirt/design on the press.
 4. Physically position the screen-printing tool and pull the colour toward the player at a precise 45° angle.
 5. Print the shirt, assess the result, and complete the customer order.
 
-Alignment, centring, the 45° print angle, and order quality are the core skill challenge. A bad print wastes a shirt and costs the player money. The simulator should make the machine and workflow feel credible without turning routine work into tedious busywork.
+The entire workflow stays in first-person POV. At the press, the collected screen is installed parallel and raised above the platen, aligned over the shirt, lowered onto the fabric, and then printed with a squeegee pulled from the far/top edge toward the player. Alignment, centring, the 45° squeegee angle, and order quality are the core skill challenge. A bad print wastes a shirt and costs the player money. The simulator should make the machine and workflow feel credible without turning routine work into tedious busywork.
 
 ### Garage workshop layout
 
@@ -63,7 +63,7 @@ Day 1 is a compact tutorial that proves the movement, interaction, printing, qua
 1. Spawn inside the garage with **$1,000** visible in the HUD.
 2. Read the single customer order: one shirt, one colour, and a specified design placement.
 3. Walk to storage and collect the correct blank shirt.
-4. Collect the ready screen and ink with one interaction; detailed screen preparation is outside the current slice.
+4. At the setup bench, add the order stencil and cream ink and collect the screen with one interaction; detailed coating and exposure are outside the current slice.
 5. Load and physically centre the shirt on the press.
 6. Lower the screen and perform the print by pulling the squeegee toward the player while maintaining the target 45° angle.
 7. Inspect the finished print for position, centring, and print quality.

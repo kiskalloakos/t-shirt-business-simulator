@@ -11,8 +11,19 @@ public sealed class WorkflowStation : Interactable
     }
 
     [SerializeField] private StationType stationType;
+    [SerializeField] private GameObject pickupVisual;
 
-    public void Configure(StationType type) => stationType = type;
+    public void Configure(StationType type, GameObject visual = null)
+    {
+        stationType = type;
+        pickupVisual = visual;
+    }
+
+    private void Update()
+    {
+        if (stationType == StationType.ScreenSetup && pickupVisual != null && Day1Game.Instance != null)
+            pickupVisual.SetActive(Day1Game.Instance.Stage == Day1Game.DayStage.PrepareScreen);
+    }
 
     public override string GetPrompt(Day1Game game)
     {
@@ -25,8 +36,8 @@ public sealed class WorkflowStation : Interactable
                 ? "[E] Take one blank navy shirt"
                 : "Shirt storage",
             StationType.ScreenSetup => game.Stage == Day1Game.DayStage.PrepareScreen
-                ? "[E] Take prepared screen + cream ink"
-                : "Prepared screens and ink",
+                ? "[E] Add cream ink + order stencil, then take screen"
+                : "Screen preparation bench",
             StationType.SubmissionDesk => game.Stage == Day1Game.DayStage.SubmitOrder
                 ? "[E] Submit the finished shirt"
                 : "Finished orders go here",
@@ -46,6 +57,8 @@ public sealed class WorkflowStation : Interactable
                 break;
             case StationType.ScreenSetup:
                 game.PrepareScreen();
+                if (pickupVisual != null)
+                    pickupVisual.SetActive(false);
                 break;
             case StationType.SubmissionDesk:
                 game.SubmitOrder();
