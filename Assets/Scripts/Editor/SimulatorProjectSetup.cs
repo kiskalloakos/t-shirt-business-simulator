@@ -164,7 +164,6 @@ public static class SimulatorProjectSetup
         Material shirtMat = GetMaterial("NavyShirt", new Color(0.035f, 0.09f, 0.18f), 0f, 0.25f);
         Material ink = GetMaterial("CreamInk", new Color(0.94f, 0.82f, 0.48f), 0f, 0.55f);
         Material screenMat = GetTransparentMaterial("ScreenMeshTransparent", new Color(0.05f, 0.48f, 0.62f, 0.27f));
-        Material skin = GetMaterial("Hands", new Color(0.74f, 0.45f, 0.31f), 0f, 0.35f);
         Material squeegeeWood = GetMaterial("SqueegeeWood", new Color(0.64f, 0.31f, 0.11f), 0f, 0.28f);
 
         CreateBox("Base", new Vector3(0, 0.18f, 0), new Vector3(2.3f, 0.35f, 2.0f), machine, press.transform);
@@ -206,8 +205,6 @@ public static class SimulatorProjectSetup
         toolRig.transform.localPosition = new Vector3(0, 0.055f, 0.48f);
         CreateBox("Rubber Blade B", new Vector3(0, 0.13f, 0), new Vector3(1.46f, 0.24f, 0.055f), dark, toolRig.transform);
         CreateBox("Wooden Squeegee Grip B", new Vector3(0, 0.40f, 0), new Vector3(1.30f, 0.30f, 0.20f), squeegeeWood, toolRig.transform);
-        CreateSphere("Left Hand On Squeegee", new Vector3(-0.40f, 0.57f, -0.03f), new Vector3(0.19f, 0.15f, 0.20f), skin, toolRig.transform);
-        CreateSphere("Right Hand On Squeegee", new Vector3(0.40f, 0.57f, -0.03f), new Vector3(0.19f, 0.15f, 0.20f), skin, toolRig.transform);
         var focusPose = new GameObject("Press Camera Pose").transform;
         focusPose.SetParent(press.transform);
         focusPose.localPosition = new Vector3(0f, 3.25f, -3.30f);
