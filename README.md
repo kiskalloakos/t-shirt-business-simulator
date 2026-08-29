@@ -28,7 +28,7 @@ The player starts their own t-shirt screen-printing business in a garage. It is 
 
 ### First skill: screen printing
 
-The first skill is one-colour screen printing on t-shirts for customer orders. The initial workstation is a manual screen-printing carousel/press, based on the reference provided in this project discussion. The interaction follows the basic [screen-printing process](https://en.wikipedia.org/wiki/Screen_printing): a stencil blocks parts of a mesh, ink sits above the screen, and a squeegee forces ink through the open mesh onto the shirt. The current slice supplies a ready screen but keeps screen alignment, the visible ink pass, and the squeegee pull as the hands-on skill.
+The first skill is one-colour screen printing on t-shirts for customer orders. The initial workstation is a manual screen-printing carousel/press, based on the reference provided in this project discussion. The interaction follows the basic [screen-printing process](https://en.wikipedia.org/wiki/Screen_printing): a stencil blocks parts of a mesh, ink sits above the screen, and a squeegee forces ink through the open mesh onto the shirt. The current slice supplies a ready screen but keeps screen alignment and the squeegee pull as the hands-on skill. The pull does not paint a visible trail across the mesh; the result is revealed on the shirt only after the completed stroke and screen lift.
 
 The core skill challenge is correctly aligning and printing each order on a shirt:
 

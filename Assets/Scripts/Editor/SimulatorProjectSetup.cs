@@ -189,7 +189,6 @@ public static class SimulatorProjectSetup
         CreateBox("Frame Right", new Vector3(1.02f, 0, 0), new Vector3(0.12f, 0.10f, 1.65f), machine, frame.transform);
         GameObject mesh = CreateBox("Transparent Screen Mesh", Vector3.zero, new Vector3(1.92f, 0.018f, 1.42f), screenMat, frame.transform);
         CreateBox("Order Stencil Visible In Mesh", new Vector3(0, 0.018f, -0.10f), new Vector3(0.62f, 0.012f, 0.42f), ink, frame.transform);
-        GameObject inkPass = CreateBox("Ink Spreading Under Squeegee", new Vector3(0, 0.045f, 0.43f), new Vector3(1.72f, 0.018f, 0.015f), ink, frame.transform);
 
         var clamp = new GameObject("Fixed Full Width Screen Holder");
         clamp.transform.SetParent(frame.transform, false);
@@ -219,7 +218,7 @@ public static class SimulatorProjectSetup
         angleFocusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.42f, -0.48f)));
 
         var station = press.AddComponent<ScreenPrintStation>();
-        station.Configure(frame.transform, toolRig.transform, focusPose, angleFocusPose, inkPass.transform,
+        station.Configure(frame.transform, toolRig.transform, focusPose, angleFocusPose,
             mesh.GetComponent<Renderer>(), shirt, print.GetComponent<Renderer>());
         CreateSign("PRESS", new Vector3(0, 2.35f, 0.75f), Quaternion.identity, press.transform);
     }

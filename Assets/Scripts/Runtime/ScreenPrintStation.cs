@@ -16,7 +16,6 @@ public sealed class ScreenPrintStation : Interactable
     [SerializeField] private Transform squeegee;
     [SerializeField] private Transform focusPose;
     [SerializeField] private Transform angleFocusPose;
-    [SerializeField] private Transform inkPass;
     [SerializeField] private Renderer screenMesh;
     [SerializeField] private GameObject shirtObject;
     [SerializeField] private Renderer printedDesign;
@@ -37,14 +36,13 @@ public sealed class ScreenPrintStation : Interactable
     private float screenMotion;
     private float pendingQuality;
 
-    public void Configure(Transform frame, Transform tool, Transform cameraPose, Transform closeAnglePose, Transform inkSpread,
+    public void Configure(Transform frame, Transform tool, Transform cameraPose, Transform closeAnglePose,
         Renderer mesh, GameObject shirt, Renderer design)
     {
         screenFrame = frame;
         squeegee = tool;
         focusPose = cameraPose;
         angleFocusPose = closeAnglePose;
-        inkPass = inkSpread;
         screenMesh = mesh;
         shirtObject = shirt;
         printedDesign = design;
@@ -54,8 +52,6 @@ public sealed class ScreenPrintStation : Interactable
             screenFrame.gameObject.SetActive(false);
         }
         SetShirtVisible(false);
-        if (inkPass != null)
-            inkPass.gameObject.SetActive(false);
     }
 
     private void Awake()
@@ -168,8 +164,6 @@ public sealed class ScreenPrintStation : Interactable
         pullProgress = 0f;
         angleScoreTotal = Mathf.Clamp01(1f - Mathf.Abs(squeegeeAngle - 45f) / 20f);
         pullSamples = 1f;
-        if (inkPass != null)
-            inkPass.gameObject.SetActive(true);
         phase = PrintPhase.Printing;
     }
 
@@ -184,8 +178,6 @@ public sealed class ScreenPrintStation : Interactable
 
         pullProgress = Mathf.Clamp01(pullProgress + pull * 0.035f);
         squeegee.localPosition = Vector3.Lerp(new Vector3(0f, 0.055f, 0.48f), new Vector3(0f, 0.055f, -0.48f), pullProgress);
-        UpdateInkPass();
-
         if (pullProgress >= 1f)
             CompletePrint();
     }
@@ -246,11 +238,6 @@ public sealed class ScreenPrintStation : Interactable
         }
         if (printedDesign != null)
             printedDesign.enabled = false;
-        if (inkPass != null)
-        {
-            inkPass.gameObject.SetActive(false);
-            UpdateInkPass();
-        }
     }
 
     private void UpdateScreenMotion(bool lowering)
@@ -270,8 +257,6 @@ public sealed class ScreenPrintStation : Interactable
             return;
         }
 
-        if (inkPass != null)
-            inkPass.gameObject.SetActive(false);
         float quality = pendingQuality;
         ExitFocus();
         phase = PrintPhase.Idle;
@@ -360,16 +345,6 @@ public sealed class ScreenPrintStation : Interactable
         }
 
         GUI.matrix = previousMatrix;
-    }
-
-    private void UpdateInkPass()
-    {
-        if (inkPass == null)
-            return;
-
-        float length = Mathf.Lerp(0.015f, 0.88f, pullProgress);
-        inkPass.localScale = new Vector3(1.72f, 0.018f, length);
-        inkPass.localPosition = new Vector3(0f, 0.045f, 0.43f - length * 0.5f);
     }
 
     private void DrawAngleGauge(Rect rect)
