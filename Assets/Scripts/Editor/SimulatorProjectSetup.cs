@@ -214,7 +214,7 @@ public static class SimulatorProjectSetup
 
         var angleFocusPose = new GameObject("Squeegee Angle Close-Up Pose").transform;
         angleFocusPose.SetParent(press.transform);
-        angleFocusPose.localPosition = new Vector3(0.38f, 2.24f, -2.48f);
+        angleFocusPose.localPosition = new Vector3(0.42f, 2.58f, -2.95f);
         angleFocusPose.LookAt(press.transform.TransformPoint(new Vector3(0f, 1.42f, -0.48f)));
 
         var station = press.AddComponent<ScreenPrintStation>();
